@@ -1,171 +1,264 @@
 using UnityEngine;
 using UnityEditor;
+using System.Reflection;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
-/// <summary>
-/// 指定した条件にマッチするコンポーネントを、あるオブジェクトから別のオブジェクトへコピーするエディタ拡張
-/// VRChatアバターのセットアップコピーなどを想定
-/// </summary>
 public class NunifuchisakaCopyComponent : EditorWindow
 {
-  private GameObject sourceObject;
-  private GameObject destinationObject;
+    private GameObject sourceObject;
+    private GameObject destinationObject;
 
-  // コピー条件のフラグ
-  private bool copyTransform = true; // Transformの値をコピーするか
-  private bool copyVrcComponents = true;
-  private bool copyMaComponents = true;
-  private bool copyAaoComponents = true;
+    private bool copyVrcComponents = true;
+    private bool copyMaComponents = true;
+    private bool copyAaoComponents = true;
 
-  /// <summary>
-  /// メニューからウィンドウを表示
-  /// </summary>
-  [MenuItem("Tools/Nunifuchisaka/CopyComponent")]
-  public static void ShowWindow()
-  {
-    // ウィンドウを取得して表示
-    GetWindow<NunifuchisakaCopyComponent>("Copy Component");
-  }
-
-  /// <summary>
-  /// ウィンドウのGUIを描画
-  /// </summary>
-  private void OnGUI()
-  {
-    GUILayout.Label("Component Copier", EditorStyles.boldLabel);
-    // EditorGUILayout.HelpBox("メモ", MessageType.Info);
-
-    // オブジェクト指定フィールド
-    sourceObject = (GameObject)EditorGUILayout.ObjectField("Source Object", sourceObject, typeof(GameObject), true);
-    destinationObject = (GameObject)EditorGUILayout.ObjectField("Destination Object", destinationObject, typeof(GameObject), true);
-
-    GUILayout.Space(10);
-
-    // コピー条件のチェックボックス
-    EditorGUILayout.LabelField("Copy Conditions", EditorStyles.boldLabel);
-    copyTransform = EditorGUILayout.Toggle(new GUIContent("Copy Transform Values", "位置、回転、スケールをコピーします。"), copyTransform);
-    copyVrcComponents = EditorGUILayout.Toggle(new GUIContent("Copy 'VRC' components", "VRChat SDK関連のコンポーネントをコピーします。"), copyVrcComponents);
-    copyMaComponents = EditorGUILayout.Toggle(new GUIContent("Copy 'MA' components", "Modular Avatar関連のコンポーネントをコピーします。"), copyMaComponents);
-    copyAaoComponents = EditorGUILayout.Toggle(new GUIContent("Copy 'AAO' components", "Avatar Assemblerなど、'AAO'で始まるコンポーネントをコピーします。"), copyAaoComponents);
-
-    GUILayout.Space(20);
-
-    // 実行ボタン
-    if (GUILayout.Button("Copy Components"))
+    [MenuItem("Tools/Nunifuchisaka/CopyComponent")]
+    public static void ShowWindow()
     {
-      CopyComponents();
-    }
-  }
-
-  /// <summary>
-  /// コンポーネントのコピー処理を実行
-  /// </summary>
-  private void CopyComponents()
-  {
-    // オブジェクトが設定されているか確認
-    if (sourceObject == null || destinationObject == null)
-    {
-      Debug.LogError("[CopyComponent] Source Object と Destination Object の両方を設定してください。");
-      return;
+        GetWindow<NunifuchisakaCopyComponent>("Copy Component");
     }
 
-    // コピー条件が1つもチェックされていない場合は警告
-    if (!copyTransform && !copyVrcComponents && !copyMaComponents && !copyAaoComponents)
+    private void OnGUI()
     {
-      Debug.LogWarning("[CopyComponent] コピーする条件を少なくとも1つチェックしてください。");
-      return;
-    }
+        GUILayout.Label("Component Copier", EditorStyles.boldLabel);
 
-    try
-    {
-      int copiedCount = 0;
-      // Undo処理のために、コピー先のオブジェクトと既存コンポーネントを記録
-      Undo.RecordObject(destinationObject, "Copy Components");
-      foreach(var component in destinationObject.GetComponents<Component>())
-      {
-        Undo.RecordObject(component, "Copy Components");
-      }
+        sourceObject = (GameObject)EditorGUILayout.ObjectField("Source Object", sourceObject, typeof(GameObject), true);
+        destinationObject = (GameObject)EditorGUILayout.ObjectField("Destination Object", destinationObject, typeof(GameObject), true);
 
-      Debug.Log($"[CopyComponent] ----- Start copying from '{sourceObject.name}' to '{destinationObject.name}' -----");
+        GUILayout.Space(10);
+        
+        EditorGUILayout.LabelField("コピー対象のコンポーネント", EditorStyles.boldLabel);
+        copyVrcComponents = EditorGUILayout.Toggle(new GUIContent("VRC", "VRChat SDK関連のコンポーネントをコピーします。"), copyVrcComponents);
+        copyMaComponents = EditorGUILayout.Toggle(new GUIContent("ModularAvatar", "Modular Avatar関連のコンポーネントをコピーします。"), copyMaComponents);
+        copyAaoComponents = EditorGUILayout.Toggle(new GUIContent("AAO TraceAndOptimize", "TraceAndOptimizeコンポーネントをコピーします。"), copyAaoComponents);
 
-      // 1. Transformコンポーネントの値コピー
-      if (copyTransform)
-      {
-        if (UnityEditorInternal.ComponentUtility.CopyComponent(sourceObject.transform))
+        GUILayout.Space(20);
+
+        if (GUILayout.Button("コピー実行"))
         {
-          if (UnityEditorInternal.ComponentUtility.PasteComponentValues(destinationObject.transform))
-          {
-            Debug.Log($"[CopyComponent] Copied values of 'Transform'.");
-            copiedCount++;
-          }
+            CopyComponents();
         }
-      }
+    }
 
-      // 2. 他のコンポーネントのコピー
-      Component[] sourceComponents = sourceObject.GetComponents<Component>();
-
-      foreach (var sourceComponent in sourceComponents)
-      {
-        // Transformは既に処理済みなのでスキップ
-        if (sourceComponent is Transform)
+    private void CopyComponents()
+    {
+        if (sourceObject == null || destinationObject == null)
         {
-          continue;
+            Debug.LogError("[CopyComponent] Source Object と Destination Object の両方を設定してください。");
+            return;
         }
 
-        System.Type componentType = sourceComponent.GetType();
-        string componentName = componentType.Name;
-
-        // コピー対象か判定
-        bool shouldCopy =
-            (copyVrcComponents && componentName.StartsWith("VRC")) ||
-            (copyMaComponents && componentName.StartsWith("ModularAvatar")) ||
-            (copyAaoComponents && componentName.StartsWith("TraceAndOptimize"));
-
-        Debug.Log($"[CopyComponent] '{componentName}'.");
-
-        if (shouldCopy)
+        if (!copyVrcComponents && !copyMaComponents && !copyAaoComponents)
         {
-          // コピー先のオブジェクトに同じコンポーネントがあるか探す
-          Component destComponent = destinationObject.GetComponent(componentType);
+            Debug.LogWarning("[CopyComponent] コピーする条件を少なくとも1つチェックしてください。");
+            return;
+        }
 
-          // なければ新しく追加する (Undo対応)
-          if (destComponent == null)
-          {
-            destComponent = Undo.AddComponent(destinationObject, componentType);
-            Debug.Log($"[CopyComponent] Added new component '{componentName}' to '{destinationObject.name}'.");
-          }
+        Undo.SetCurrentGroupName("Copy Components Recursively");
+        int group = Undo.GetCurrentGroup();
 
-          // コンポーネントの値をコピー＆ペースト
-          if (UnityEditorInternal.ComponentUtility.CopyComponent(sourceComponent))
-          {
-            if (UnityEditorInternal.ComponentUtility.PasteComponentValues(destComponent))
+        try
+        {
+            Debug.Log($"[CopyComponent] ----- Start copying from '{sourceObject.name}' to '{destinationObject.name}' -----");
+
+            // --- パス 1: 階層の複製 ---
+            Debug.Log("[CopyComponent] Pass 1: Replicating hierarchy...");
+            ReplicateHierarchyRecursively(sourceObject.transform, destinationObject.transform);
+
+            // --- パス 2: コンポーネントのコピー ---
+            Debug.Log("[CopyComponent] Pass 2: Copying components...");
+            CopyComponentsRecursively(sourceObject.transform, destinationObject.transform);
+
+            // --- パス 3: 参照の再設定 ---
+            Debug.Log("[CopyComponent] Pass 3: Remapping references...");
+            RemapAllReferencesRecursively(destinationObject.transform);
+
+            Debug.Log("[CopyComponent] ----- All passes completed successfully. -----");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[CopyComponent] An error occurred: {e.Message}\n{e.StackTrace}");
+        }
+        finally
+        {
+            Undo.CollapseUndoOperations(group);
+        }
+    }
+
+    private void ReplicateHierarchyRecursively(Transform source, Transform parentInDest)
+    {
+        foreach (Transform sourceChild in source)
+        {
+            Transform destChild = parentInDest.Find(sourceChild.name);
+            if (destChild == null)
             {
-              Debug.Log($"[CopyComponent] Pasted values for component '{componentName}'.");
-              copiedCount++;
+                GameObject newDestGo = new GameObject(sourceChild.name);
+                Undo.RegisterCreatedObjectUndo(newDestGo, "Replicate Hierarchy");
+                destChild = newDestGo.transform;
+                destChild.SetParent(parentInDest);
+                destChild.localPosition = sourceChild.localPosition;
+                destChild.localRotation = sourceChild.localRotation;
+                destChild.localScale = sourceChild.localScale;
             }
-            else
-            {
-              Debug.LogWarning($"[CopyComponent] Failed to paste values for '{componentName}'.");
-            }
-          }
-          else
-          {
-            Debug.LogWarning($"[CopyComponent] Failed to copy component '{componentName}'.");
-          }
+            ReplicateHierarchyRecursively(sourceChild, destChild);
         }
-      }
+    }
 
-      if (copiedCount > 0)
-      {
-        Debug.Log($"[CopyComponent] ----- Finished: Processed {copiedCount} component(s) successfully. -----");
-      }
-      else
-      {
-        Debug.LogWarning("[CopyComponent] No matching components found to copy.");
-      }
-    }
-    catch (System.Exception e)
+    private void CopyComponentsRecursively(Transform source, Transform destination)
     {
-      Debug.LogError($"[CopyComponent] An error occurred: {e.Message}");
+        Component[] sourceComponents = source.GetComponents<Component>().OrderBy(c => GetSortPriority(c)).ToArray();
+
+        foreach (var sourceComponent in sourceComponents)
+        {
+            if (sourceComponent is Transform) continue;
+
+            System.Type componentType = sourceComponent.GetType();
+            string componentName = componentType.Name;
+            
+            string componentNamespace = componentType.Namespace ?? "";
+            bool shouldCopy = (copyVrcComponents && (componentName.StartsWith("VRC") || componentNamespace.StartsWith("VRC"))) ||
+                                 (copyMaComponents && (componentName.StartsWith("MA") || componentName.StartsWith("ModularAvatar"))) ||
+                                 (copyAaoComponents && componentName.StartsWith("TraceAndOptimize"));
+
+            if (shouldCopy)
+            {
+                Component destComponent = destination.GetComponent(componentType);
+                if (destComponent == null)
+                {
+                    destComponent = Undo.AddComponent(destination.gameObject, componentType);
+                }
+                else
+                {
+                    Undo.RecordObject(destComponent, "Paste Component Values");
+                }
+
+                if (UnityEditorInternal.ComponentUtility.CopyComponent(sourceComponent))
+                {
+                    UnityEditorInternal.ComponentUtility.PasteComponentValues(destComponent);
+                }
+            }
+        }
+
+        foreach (Transform sourceChild in source)
+        {
+            Transform destinationChild = destination.Find(sourceChild.name);
+            if (destinationChild != null)
+            {
+                CopyComponentsRecursively(sourceChild, destinationChild);
+            }
+        }
     }
-  }
+    
+    private void RemapAllReferencesRecursively(Transform dest)
+    {
+        foreach (Component component in dest.GetComponents<Component>())
+        {
+            RemapReferences(component);
+        }
+
+        foreach (Transform child in dest)
+        {
+            RemapAllReferencesRecursively(child);
+        }
+    }
+
+    private int GetSortPriority(Component component)
+    {
+        string componentName = component.GetType().Name;
+        if (componentName == "VRCPhysBoneCollider") return 0;
+        if (componentName == "VRCPhysBone") return 1;
+        if (componentName.StartsWith("ModularAvatar")) return 3;
+        if (componentName == "TraceAndOptimize") return 4;
+        return 2;
+    }
+
+    private void RemapReferences(object targetObject)
+    {
+        ProcessFieldsRecursively(targetObject, targetObject.GetType());
+    }
+    
+    private void ProcessFieldsRecursively(object targetObject, System.Type targetType)
+    {
+        FieldInfo[] fields = targetType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        foreach (FieldInfo field in fields)
+        {
+            object fieldValue = field.GetValue(targetObject);
+            if (typeof(UnityEngine.Object).IsAssignableFrom(field.FieldType))
+            {
+                if (fieldValue is UnityEngine.Object sourceReference && sourceReference != null)
+                {
+                    var newReference = RemapObject(sourceReference);
+                    if (newReference != null) field.SetValue(targetObject, newReference);
+                }
+            }
+            else if (field.FieldType.IsArray && fieldValue is System.Array array)
+            {
+                System.Type elementType = field.FieldType.GetElementType();
+                if (typeof(UnityEngine.Object).IsAssignableFrom(elementType))
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        if (array.GetValue(i) is UnityEngine.Object sourceReference && sourceReference != null)
+                        {
+                            var newReference = RemapObject(sourceReference);
+                            if (newReference != null) array.SetValue(newReference, i);
+                        }
+                    }
+                }
+            }
+            else if (typeof(IList).IsAssignableFrom(field.FieldType) && field.FieldType.IsGenericType && fieldValue is IList list)
+            {
+                System.Type genericType = field.FieldType.GetGenericArguments()[0];
+                if (typeof(UnityEngine.Object).IsAssignableFrom(genericType))
+                {
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        if (list[i] is UnityEngine.Object sourceReference && sourceReference != null)
+                        {
+                            var newReference = RemapObject(sourceReference);
+                            if (newReference != null) list[i] = newReference;
+                        }
+                    }
+                }
+            }
+            else if (field.FieldType.IsValueType && !field.FieldType.IsPrimitive && field.FieldType.Namespace != null && !field.FieldType.Namespace.StartsWith("System"))
+            {
+                ProcessFieldsRecursively(fieldValue, field.FieldType);
+                field.SetValue(targetObject, fieldValue);
+            }
+        }
+    }
+    private UnityEngine.Object RemapObject(UnityEngine.Object sourceRefObject)
+    {
+        GameObject sourceGo = null;
+        if (sourceRefObject is GameObject) sourceGo = (GameObject)sourceRefObject;
+        if (sourceRefObject is Component) sourceGo = ((Component)sourceRefObject).gameObject;
+
+        if (sourceGo == null || !sourceGo.transform.IsChildOf(sourceObject.transform)) return null;
+        
+        string path = GetRelativePath(sourceObject.transform, sourceGo.transform);
+        Transform destinationTransform = (path == null) ? destinationObject.transform : destinationObject.transform.Find(path);
+
+        if (destinationTransform == null) return null;
+
+        if (sourceRefObject is GameObject) return destinationTransform.gameObject;
+        if (sourceRefObject is Component) return destinationTransform.GetComponent(sourceRefObject.GetType());
+        
+        return null;
+    }
+    private string GetRelativePath(Transform root, Transform child)
+    {
+        if (child == root) return null;
+        string path = child.name;
+        Transform parent = child.parent;
+        while (parent != null)
+        {
+            if (parent == root) return path;
+            path = parent.name + "/" + path;
+            parent = parent.parent;
+        }
+        return null;
+    }
 }
