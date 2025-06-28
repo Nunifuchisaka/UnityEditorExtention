@@ -12,7 +12,7 @@ namespace Nunifuchisaka
     private bool removeMaComponents = true;
     private bool removeAaoComponents = true;
 
-    [MenuItem("Tools/Nunifuchisaka/Component Remover")]
+    [MenuItem("Tools/Nunifuchisaka/Component Remover...")]
     public static void ShowWindow()
     {
       GetWindow<ComponentRemover>("Component Remover");

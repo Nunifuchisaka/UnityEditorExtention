@@ -12,7 +12,7 @@ namespace Nunifuchisaka
     private bool revertRotation = true;
     private bool revertScale = true;
 
-    [MenuItem("Tools/Nunifuchisaka/Transform Reverter")]
+    [MenuItem("Tools/Nunifuchisaka/Transform Reverter...")]
     public static void ShowWindow()
     {
       GetWindow<TransformReverter>("Transform Reverter");
