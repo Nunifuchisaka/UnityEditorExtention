@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.Rendering;
 
 namespace Nunifuchisaka
 {
@@ -19,10 +20,10 @@ namespace Nunifuchisaka
     private bool copyBlendShapes = true;
     private bool copyMaterials = true;
 
-    [MenuItem("Tools/Nunifuchisaka/ComponentCopier...")]
+    [MenuItem("Tools/Nunifuchisaka/Component Copier...")]
     public static void ShowWindow()
     {
-      GetWindow<ComponentCopier>("ComponentCopier");
+      GetWindow<ComponentCopier>("Component Copier");
     }
 
     private void OnGUI()
@@ -32,14 +33,14 @@ namespace Nunifuchisaka
       destinationObject = (GameObject)EditorGUILayout.ObjectField("To", destinationObject, typeof(GameObject), true);
       GUILayout.Space(10);
       EditorGUILayout.LabelField("Conditions", EditorStyles.boldLabel);
-      copyTransform = EditorGUILayout.Toggle(new GUIContent("Transform", "既存オブジェクトのTransform情報（位置、回転、スケール）を上書きコピーします。"), copyTransform);
+      copyTransform = EditorGUILayout.Toggle(new GUIContent("Transform", "既存オブジェクトのTransform情報（位置、回転、スケール）をコピーします。"), copyTransform);
       copyMaterials = EditorGUILayout.Toggle(new GUIContent("Materials", "Rendererのマテリアルをコピーします。"), copyMaterials);
-      copyBlendShapes = EditorGUILayout.Toggle(new GUIContent("BlendShapes", "SkinnedMeshRendererのBlendShape（シェイプキー）のウェイト値をコピーします。"), copyBlendShapes);
+      copyBlendShapes = EditorGUILayout.Toggle(new GUIContent("BlendShapes", "SkinnedMeshRendererのBlendShape値をコピーします。"), copyBlendShapes);
       copyVrcComponents = EditorGUILayout.Toggle(new GUIContent("VRC", "VRChat SDK関連のコンポーネントをコピーします。"), copyVrcComponents);
       copyMaComponents = EditorGUILayout.Toggle(new GUIContent("ModularAvatar", "Modular Avatar関連のコンポーネントをコピーします。"), copyMaComponents);
       copyAaoComponents = EditorGUILayout.Toggle(new GUIContent("AAO TraceAndOptimize", "TraceAndOptimizeコンポーネントをコピーします。"), copyAaoComponents);
       GUILayout.Space(20);
-      if (GUILayout.Button("Copier"))
+      if (GUILayout.Button("Copy"))
       {
         CopyComponents();
       }
@@ -64,7 +65,7 @@ namespace Nunifuchisaka
         Debug.Log($"[ComponentCopier] ----- Start copying from '{sourceObject.name}' to '{destinationObject.name}' -----");
         Debug.Log("[ComponentCopier] Pass 1: Replicating hierarchy...");
         ReplicateHierarchyRecursively(sourceObject.transform, destinationObject.transform);
-        Debug.Log("[ComponentCopier] Pass 2: Copying components...");
+        Debug.Log("[ComponentCopier] Pass 2: Copying components and data...");
         CopyComponentsRecursively(sourceObject.transform, destinationObject.transform);
         Debug.Log("[ComponentCopier] Pass 3: Remapping references...");
         RemapAllReferencesRecursively(destinationObject.transform);
@@ -87,10 +88,28 @@ namespace Nunifuchisaka
         Transform destChild = parentInDest.Find(sourceChild.name);
         if (destChild == null)
         {
-          GameObject newDestGo = new GameObject(sourceChild.name);
-          Undo.RegisterCreatedObjectUndo(newDestGo, "Replicate Hierarchy");
+          GameObject newDestGo;
+          
+          // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+          // 【修正】Prefabかどうかを判定し、処理を分岐する
+          // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+          if (PrefabUtility.IsPartOfPrefabInstance(sourceChild.gameObject))
+          {
+            // Prefabのインスタンスである場合
+            var prefabAsset = PrefabUtility.GetCorrespondingObjectFromSource(sourceChild.gameObject);
+            newDestGo = (GameObject)PrefabUtility.InstantiatePrefab(prefabAsset, parentInDest);
+            newDestGo.name = sourceChild.name; // Prefabインスタンスの名前をソースに合わせる
+            Undo.RegisterCreatedObjectUndo(newDestGo, "Instantiate Prefab");
+          }
+          else
+          {
+            // 通常のGameObjectである場合
+            newDestGo = new GameObject(sourceChild.name);
+            Undo.RegisterCreatedObjectUndo(newDestGo, "Create GameObject");
+            newDestGo.transform.SetParent(parentInDest);
+          }
+          
           destChild = newDestGo.transform;
-          destChild.SetParent(parentInDest);
           destChild.localPosition = sourceChild.localPosition;
           destChild.localRotation = sourceChild.localRotation;
           destChild.localScale = sourceChild.localScale;
@@ -104,16 +123,28 @@ namespace Nunifuchisaka
       Component[] sourceComponents = source.GetComponents<Component>().OrderBy(c => GetSortPriority(c)).ToArray();
       foreach (var sourceComponent in sourceComponents)
       {
+        if (sourceComponent is Renderer sourceRenderer)
+        {
+            if (destination.TryGetComponent<Renderer>(out var destRenderer))
+            {
+                if (copyMaterials) CopierMaterials(sourceRenderer, destRenderer);
+                if (copyBlendShapes && sourceRenderer is SkinnedMeshRenderer sourceSmr && destRenderer is SkinnedMeshRenderer destSmr)
+                {
+                    CopierBlendShapes(sourceSmr, destSmr);
+                }
+            }
+            continue;
+        }
+
         if (sourceComponent is Transform && (!copyTransform || source == sourceObject.transform)) continue;
+        
         System.Type componentType = sourceComponent.GetType();
         string componentName = componentType.Name;
         bool shouldCopy = (sourceComponent is Transform && copyTransform);
         if (!shouldCopy)
         {
             string componentNamespace = componentType.Namespace ?? "";
-            shouldCopy = (copyMaterials && sourceComponent is Renderer) ||
-                         (copyBlendShapes && sourceComponent is SkinnedMeshRenderer) ||
-                         (copyVrcComponents && (componentName.StartsWith("VRC") || componentNamespace.StartsWith("VRC"))) ||
+            shouldCopy = (copyVrcComponents && (componentName.StartsWith("VRC") || componentNamespace.StartsWith("VRC"))) ||
                          (copyMaComponents && (componentName.StartsWith("MA") || componentName.StartsWith("ModularAvatar"))) ||
                          (copyAaoComponents && componentName.StartsWith("TraceAndOptimize"));
         }
@@ -121,26 +152,11 @@ namespace Nunifuchisaka
         {
           Component destComponent = destination.GetComponent(componentType);
           if (destComponent == null) destComponent = Undo.AddComponent(destination.gameObject, componentType);
-          else Undo.RecordObject(destComponent, "Paste Component Values");
-
-          Transform originalRootBone = null;
-          Transform originalProbeAnchor = null;
-
-          // ペースト前に、コピー先の現在の値を保存
-          if (destComponent is SkinnedMeshRenderer smr) originalRootBone = smr.rootBone;
-          if (destComponent is Renderer rend) originalProbeAnchor = rend.probeAnchor;
+          else Undo.RecordObject(destComponent, "Modify Component");
 
           if (UnityEditorInternal.ComponentUtility.CopyComponent(sourceComponent))
           {
-            if (UnityEditorInternal.ComponentUtility.PasteComponentValues(destComponent))
-            {
-              // ペースト後、保存しておいた元の値を書き戻す
-              if (destComponent is SkinnedMeshRenderer smr) smr.rootBone = originalRootBone;
-              if (destComponent is Renderer rend) rend.probeAnchor = originalProbeAnchor;
-
-              if (copyBlendShapes && destComponent is SkinnedMeshRenderer destSMR && sourceComponent is SkinnedMeshRenderer sourceSMR) CopierBlendShapes(sourceSMR, destSMR);
-              if (copyMaterials && destComponent is Renderer destRenderer && sourceComponent is Renderer sourceRenderer) CopierMaterials(sourceRenderer, destRenderer);
-            }
+            UnityEditorInternal.ComponentUtility.PasteComponentValues(destComponent);
           }
         }
       }
@@ -175,7 +191,7 @@ namespace Nunifuchisaka
     {
       foreach (Component component in dest.GetComponents<Component>())
       {
-        RemapReferences(component);
+        ProcessFieldsRecursively(component, component.GetType());
       }
       foreach (Transform child in dest)
       {
@@ -186,17 +202,12 @@ namespace Nunifuchisaka
     private int GetSortPriority(Component component)
     {
       string componentName = component.GetType().Name;
-      if (component is SkinnedMeshRenderer) return -1;
+      if (component is Renderer) return -1;
       if (componentName == "VRCPhysBoneCollider") return 0;
       if (componentName == "VRCPhysBone") return 1;
       if (componentName.StartsWith("MA") || componentName.StartsWith("ModularAvatar")) return 3;
       if (componentName == "TraceAndOptimize") return 4;
       return 2;
-    }
-    
-    private void RemapReferences(object targetObject)
-    {
-      ProcessFieldsRecursively(targetObject, targetObject.GetType());
     }
     
     private void ProcessFieldsRecursively(object targetObject, System.Type targetType)
