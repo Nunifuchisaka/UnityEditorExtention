@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
@@ -21,18 +22,18 @@ namespace Nunifuchisaka
     private void OnGUI()
     {
       GUILayout.Label("Select Target GameObject", EditorStyles.boldLabel);
-      
+
       rootObject = (GameObject)EditorGUILayout.ObjectField("Root Object", rootObject, typeof(GameObject), true);
-      
+
       GUILayout.Space(10);
-      
+
       EditorGUILayout.LabelField("Remove Conditions", EditorStyles.boldLabel);
       removeVrcComponents = EditorGUILayout.Toggle(new GUIContent("VRC", "VRChat SDK関連のコンポーネント（VRC...で始まるもの）を削除します。"), removeVrcComponents);
       removeMaComponents = EditorGUILayout.Toggle(new GUIContent("ModularAvatar", "Modular Avatar関連のコンポーネント（ModularAvatar...で始まるもの）を削除します。"), removeMaComponents);
       removeAaoComponents = EditorGUILayout.Toggle(new GUIContent("AAO TraceAndOptimize", "Avatar OptimizerのTraceAndOptimizeを削除します。"), removeAaoComponents);
-      
+
       GUILayout.Space(20);
-      
+
       if (GUILayout.Button("Remove"))
       {
         RemoveSelectedComponents();
@@ -83,15 +84,15 @@ namespace Nunifuchisaka
 
         if (componentsToRemove.Count > 0)
         {
-          foreach(var component in componentsToRemove)
+          foreach (var component in componentsToRemove)
           {
-            if(component != null) 
+            if (component != null)
             {
               string componentNameForLog = component.GetType().Name;
               string gameObjectNameForLog = component.gameObject.name;
 
               Undo.DestroyObjectImmediate(component);
-              
+
               Debug.Log($"[ComponentRemover] Removed component '{componentNameForLog}' from '{gameObjectNameForLog}'.");
             }
           }
@@ -113,3 +114,4 @@ namespace Nunifuchisaka
     }
   }
 }
+#endif

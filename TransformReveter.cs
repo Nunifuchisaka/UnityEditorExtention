@@ -6,7 +6,6 @@ namespace Nunifuchisaka
 {
   public class TransformReverter : EditorWindow
   {
-    // ウィンドウに表示するための変数
     private GameObject targetObject;
     private bool revertPosition = true;
     private bool revertRotation = true;

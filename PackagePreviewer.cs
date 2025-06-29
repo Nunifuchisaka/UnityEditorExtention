@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using System.IO;
@@ -9,6 +10,9 @@ using System.Linq;
 
 namespace Nunifuchisaka
 {
+  /// <summary>
+  /// Unitypackageの内容をプレビューし、既存アセットとの競合を確認するエディタ拡張。
+  /// </summary>
   public class PackagePreviewer : EditorWindow
   {
     private class AssetInfo { public string Path { get; set; } public string Guid { get; set; } public string Status { get; set; } public string ExistingPath { get; set; } public Texture Icon { get; set; } }
@@ -110,7 +114,6 @@ namespace Nunifuchisaka
             try { size = Convert.ToInt64(sizeStr, 8); } catch { /* ignore parse error */ }
           }
 
-          bool isTargetFile = false;
           if (!string.IsNullOrEmpty(name) && !name.Contains("PaxHeader") && !name.Contains("/._"))
           {
             string normalizedName = name.StartsWith("./") ? name.Substring(2) : name;
@@ -118,7 +121,7 @@ namespace Nunifuchisaka
 
             if (parts.Length == 2 && parts[1] == "pathname")
             {
-              isTargetFile = true;
+              // isTargetFile = true; // ←この行を削除
               string guid = parts[0];
               string assetPath = Encoding.UTF8.GetString(buffer, offset + 512, (int)size).Trim();
               string existingPath = AssetDatabase.GUIDToAssetPath(guid);
@@ -146,3 +149,4 @@ namespace Nunifuchisaka
     }
   }
 }
+#endif
