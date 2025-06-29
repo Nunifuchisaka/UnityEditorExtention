@@ -52,7 +52,6 @@ namespace Nunifuchisaka
           BlendShapeCopier.ExecuteCopy(sourceObject, destinationObject);
           ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents);
         }
-        EditorGUI.EndDisabledGroup();
         EditorGUILayout.EndVertical();
 
         EditorGUILayout.Space(10);
@@ -102,10 +101,9 @@ namespace Nunifuchisaka
         {
           ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents);
         }
-
-        EditorGUI.EndDisabledGroup();
         EditorGUILayout.EndVertical();
       }
+      EditorGUI.EndDisabledGroup();
 
       EditorGUILayout.Space(10);
       // GUILayout.Box("", GUILayout.ExpandWidth(true), GUILayout.Height(20));
