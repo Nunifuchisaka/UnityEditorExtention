@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using System.Reflection;
@@ -18,7 +17,7 @@ namespace Nunifuchisaka
     private bool copyMaComponents = true;
     private bool copyAaoComponents = true;
 
-    [MenuItem("Tools/Nunifuchisaka/Component Copier...")]
+    [MenuItem("Tools/Nunifuchisaka/Component Copier")]
     public static void ShowWindow()
     {
       GetWindow<ComponentCopier>("Component Copier");
@@ -53,7 +52,7 @@ namespace Nunifuchisaka
         Debug.LogWarning("[ComponentCopier] コピーする条件を少なくとも1つチェックしてください。");
         return;
       }
-
+      
       Undo.SetCurrentGroupName("Copy Components Recursively");
       int group = Undo.GetCurrentGroup();
       try
@@ -77,14 +76,10 @@ namespace Nunifuchisaka
       }
     }
 
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-    // 【最終修正】インテリジェントな階層複製ロジック
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
     private static void ReplicateHierarchyRecursively(Transform source, Transform parentInDest, bool copyVrc, bool copyMa, bool copyAao)
     {
       foreach (Transform sourceChild in source)
       {
-        // この子オブジェクト、またはその子孫にコピー対象のコンポーネントがあるか事前にチェック
         if (HierarchyHasCopyableComponents(sourceChild, copyVrc, copyMa, copyAao))
         {
           Transform destChild = parentInDest.Find(sourceChild.name);
@@ -98,39 +93,36 @@ namespace Nunifuchisaka
             destChild.localRotation = sourceChild.localRotation;
             destChild.localScale = sourceChild.localScale;
           }
-          // コピー対象がある階層のみ、再帰処理を続行
           ReplicateHierarchyRecursively(sourceChild, destChild, copyVrc, copyMa, copyAao);
         }
       }
     }
 
-    // 【新規追加】指定されたTransformまたはその子孫にコピー対象コンポーネントが存在するかを判定する
     private static bool HierarchyHasCopyableComponents(Transform target, bool copyVrc, bool copyMa, bool copyAao)
     {
-      foreach (var component in target.GetComponents<Component>())
-      {
-        if (component is Transform || component is Renderer) continue;
-
-        string componentName = component.GetType().Name;
-        string componentNamespace = component.GetType().Namespace ?? "";
-
-        bool isCopyTarget = (copyVrc && (componentName.StartsWith("VRC") || componentNamespace.StartsWith("VRC"))) ||
-                            (copyMa && (componentName.StartsWith("MA") || componentName.StartsWith("ModularAvatar"))) ||
-                            (copyAao && componentName.StartsWith("TraceAndOptimize"));
-
-        if (isCopyTarget) return true; // 対象を発見
-      }
-
-      // 自分になければ、子を再帰的に探索
-      foreach (Transform child in target)
-      {
-        if (HierarchyHasCopyableComponents(child, copyVrc, copyMa, copyAao))
+        foreach(var component in target.GetComponents<Component>())
         {
-          return true; // 子孫から対象を発見
-        }
-      }
+            if (component == null) continue;
+            if (component is Transform || component is Renderer) continue;
+            
+            string componentName = component.GetType().Name;
+            string componentNamespace = component.GetType().Namespace ?? "";
 
-      return false; // この階層以下には何もなかった
+            bool isCopyTarget = (copyVrc && (componentName.StartsWith("VRC") || componentNamespace.StartsWith("VRC"))) ||
+                                (copyMa && (componentName.StartsWith("MA") || componentName.StartsWith("ModularAvatar"))) ||
+                                (copyAao && componentName.StartsWith("TraceAndOptimize"));
+            
+            if (isCopyTarget) return true;
+        }
+
+        foreach(Transform child in target)
+        {
+            if (HierarchyHasCopyableComponents(child, copyVrc, copyMa, copyAao))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void CopyComponentsRecursively(Transform source, Transform destination, bool copyVrc, bool copyMa, bool copyAao)
@@ -138,15 +130,16 @@ namespace Nunifuchisaka
       Component[] sourceComponents = source.GetComponents<Component>().OrderBy(c => GetSortPriority(c)).ToArray();
       foreach (var sourceComponent in sourceComponents)
       {
+        if (sourceComponent == null) continue;
         if (sourceComponent is Transform || sourceComponent is Renderer)
         {
-          continue;
+            continue;
         }
-
+        
         System.Type componentType = sourceComponent.GetType();
         string componentName = componentType.Name;
         string componentNamespace = componentType.Namespace ?? "";
-
+        
         bool shouldCopy = (copyVrc && (componentName.StartsWith("VRC") || componentNamespace.StartsWith("VRC"))) ||
                          (copyMa && (componentName.StartsWith("MA") || componentName.StartsWith("ModularAvatar"))) ||
                          (copyAao && componentName.StartsWith("TraceAndOptimize"));
@@ -179,6 +172,8 @@ namespace Nunifuchisaka
     {
       foreach (Component component in currentDest.GetComponents<Component>())
       {
+        if (component == null) continue;
+        
         ProcessFieldsRecursively(component, component.GetType(), sourceRoot, destRoot);
       }
       foreach (Transform child in currentDest)
@@ -189,6 +184,8 @@ namespace Nunifuchisaka
 
     private static int GetSortPriority(Component component)
     {
+      if (component == null) return 99;
+
       string componentName = component.GetType().Name;
       if (componentName == "VRCPhysBoneCollider") return 0;
       if (componentName == "VRCPhysBone") return 1;
@@ -196,9 +193,10 @@ namespace Nunifuchisaka
       if (componentName == "TraceAndOptimize") return 4;
       return 2;
     }
-
+    
     private static void ProcessFieldsRecursively(object targetObject, System.Type targetType, GameObject sourceRoot, GameObject destRoot)
     {
+      if (targetObject == null) return;
       FieldInfo[] fields = targetType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
       foreach (FieldInfo field in fields)
       {
@@ -233,7 +231,7 @@ namespace Nunifuchisaka
         System.Type genericType = valueType.GetGenericArguments()[0];
         if (typeof(UnityEngine.Object).IsAssignableFrom(genericType))
           for (int i = 0; i < list.Count; i++)
-            if (list[i] is UnityEngine.Object elem)
+            if(list[i] is UnityEngine.Object elem)
             {
               var newReference = RemapObject(elem, sourceRoot, destRoot);
               if (newReference != null) list[i] = newReference;
@@ -275,4 +273,3 @@ namespace Nunifuchisaka
     }
   }
 }
-#endif

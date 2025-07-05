@@ -50,6 +50,7 @@ namespace Nunifuchisaka
           TransformCopier.ExecuteCopy(sourceObject, destinationObject);
           MaterialCopier.ExecuteCopy(sourceObject, destinationObject);
           BlendShapeCopier.ExecuteCopy(sourceObject, destinationObject);
+          SyncActiveState.Execute(sourceObject, destinationObject);
           ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents);
         }
         EditorGUILayout.EndVertical();
@@ -88,6 +89,14 @@ namespace Nunifuchisaka
         if (GUILayout.Button("Copy BlendShape"))
         {
           BlendShapeCopier.ExecuteCopy(sourceObject, destinationObject);
+        }
+
+        EditorGUILayout.Space(10);
+
+        // Active状態を同期
+        if (GUILayout.Button("Sync ActiveState"))
+        {
+          SyncActiveState.Execute(sourceObject, destinationObject);
         }
 
         EditorGUILayout.Space(10);
