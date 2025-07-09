@@ -13,6 +13,7 @@ namespace Nunifuchisaka
     private bool copyVrcComponents = true;
     private bool copyMaComponents = true;
     private bool copyAaoComponents = true;
+    private bool copyFloorAdjuster = true;
 
     [MenuItem("Tools/Nunifuchisaka/Avatar Copier...", false, 1)]
     public static void ShowWindow()
@@ -51,7 +52,7 @@ namespace Nunifuchisaka
           MaterialCopier.ExecuteCopy(sourceObject, destinationObject);
           BlendShapeCopier.ExecuteCopy(sourceObject, destinationObject);
           SyncActiveState.Execute(sourceObject, destinationObject);
-          ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents);
+          ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents, copyFloorAdjuster);
         }
         EditorGUILayout.EndVertical();
 
@@ -106,9 +107,10 @@ namespace Nunifuchisaka
         copyVrcComponents = EditorGUILayout.Toggle(new GUIContent("VRC", "VRChat SDK関連のコンポーネントをコピーします。"), copyVrcComponents);
         copyMaComponents = EditorGUILayout.Toggle(new GUIContent("ModularAvatar", "Modular Avatar関連のコンポーネントをコピーします。"), copyMaComponents);
         copyAaoComponents = EditorGUILayout.Toggle(new GUIContent("AAO TraceAndOptimize", "TraceAndOptimizeコンポーネントをコピーします。"), copyAaoComponents);
+        copyFloorAdjuster = EditorGUILayout.Toggle(new GUIContent("FloorAdjuster", "FloorAdjusterコンポーネントをコピーします。"), copyFloorAdjuster);
         if (GUILayout.Button("Copy Component"))
         {
-          ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents);
+          ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents, copyFloorAdjuster);
         }
         EditorGUILayout.EndVertical();
       }

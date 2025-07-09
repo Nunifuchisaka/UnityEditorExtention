@@ -21,7 +21,7 @@ namespace Nunifuchisaka
     private string _selectedPackagePath;
     private bool _isParsing = false;
 
-    [MenuItem("Tools/Nunifuchisaka/Import Package with Preview...")]
+    [MenuItem("Tools/Nunifuchisaka/Import Package with Preview...", false, 200)]
     private static void ShowWindowMenu()
     {
       string path = EditorUtility.OpenFilePanel("Select Unity Package", "", "unitypackage");

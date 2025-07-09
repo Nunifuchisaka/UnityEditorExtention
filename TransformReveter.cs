@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace Nunifuchisaka
     private bool revertRotation = true;
     private bool revertScale = true;
 
-    [MenuItem("Tools/Nunifuchisaka/Transform Reverter...")]
+    [MenuItem("Tools/Nunifuchisaka/Transform Reverter...", false, 200)]
     public static void ShowWindow()
     {
       GetWindow<TransformReverter>("Transform Reverter");
@@ -32,7 +33,7 @@ namespace Nunifuchisaka
       revertPosition = EditorGUILayout.Toggle("Revert Position", revertPosition);
       revertRotation = EditorGUILayout.Toggle("Revert Rotation", revertRotation);
       revertScale = EditorGUILayout.Toggle("Revert Scale", revertScale);
-      
+
       EditorGUILayout.Space(20);
 
       // 3. 実行ボタン
@@ -71,7 +72,7 @@ namespace Nunifuchisaka
       }
 
       var newModifications = new List<PropertyModification>();
-      
+
       PropertyModification[] currentModifications = PrefabUtility.GetPropertyModifications(go);
       if (currentModifications != null)
       {
@@ -83,10 +84,10 @@ namespace Nunifuchisaka
             continue;
           }
 
-          bool keepModification = 
+          bool keepModification =
             (!revertPosition && mod.propertyPath.StartsWith("m_LocalPosition")) ||
             (!revertRotation && mod.propertyPath.StartsWith("m_LocalRotation")) ||
-            (!revertScale   && mod.propertyPath.StartsWith("m_LocalScale"));
+            (!revertScale && mod.propertyPath.StartsWith("m_LocalScale"));
 
           if (keepModification)
           {
@@ -104,3 +105,4 @@ namespace Nunifuchisaka
     }
   }
 }
+#endif

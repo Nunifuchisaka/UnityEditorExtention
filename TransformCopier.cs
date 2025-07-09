@@ -29,7 +29,7 @@ namespace Nunifuchisaka
       };
     }
 
-    [MenuItem("Tools/Nunifuchisaka/Transform Copier...")]
+    [MenuItem("Tools/Nunifuchisaka/Transform Copier...", false, 100)]
     public static void ShowWindow()
     {
       GetWindow<TransformCopier>("Transform Copier");

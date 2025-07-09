@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using System.Reflection;
@@ -16,8 +17,9 @@ namespace Nunifuchisaka
     private bool copyVrcComponents = true;
     private bool copyMaComponents = true;
     private bool copyAaoComponents = true;
+    private bool copyFloorAdjuster = true;
 
-    [MenuItem("Tools/Nunifuchisaka/Component Copier")]
+    [MenuItem("Tools/Nunifuchisaka/Component Copier...", false, 100)]
     public static void ShowWindow()
     {
       GetWindow<ComponentCopier>("Component Copier");
@@ -33,21 +35,23 @@ namespace Nunifuchisaka
       copyVrcComponents = EditorGUILayout.Toggle(new GUIContent("VRC", "VRChat SDK関連のコンポーネントをコピーします。"), copyVrcComponents);
       copyMaComponents = EditorGUILayout.Toggle(new GUIContent("ModularAvatar", "Modular Avatar関連のコンポーネントをコピーします。"), copyMaComponents);
       copyAaoComponents = EditorGUILayout.Toggle(new GUIContent("AAO TraceAndOptimize", "TraceAndOptimizeコンポーネントをコピーします。"), copyAaoComponents);
+      copyFloorAdjuster = EditorGUILayout.Toggle(new GUIContent("FloorAdjuster", "FloorAdjusterコンポーネントをコピーします。"), copyFloorAdjuster);
+
       GUILayout.Space(20);
       if (GUILayout.Button("Copy Components"))
       {
-        ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents);
+        ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents, copyFloorAdjuster);
       }
     }
 
-    public static void ExecuteCopy(GameObject source, GameObject dest, bool doCopyVrc, bool doCopyMa, bool doCopyAao)
+    public static void ExecuteCopy(GameObject source, GameObject dest, bool doCopyVrc, bool doCopyMa, bool doCopyAao, bool doCopyFloorAdjuster)
     {
       if (source == null || dest == null)
       {
         Debug.LogError("[ComponentCopier] From と To の両方を設定してください。");
         return;
       }
-      if (!doCopyVrc && !doCopyMa && !doCopyAao)
+      if (!doCopyVrc && !doCopyMa && !doCopyAao && !doCopyFloorAdjuster)
       {
         Debug.LogWarning("[ComponentCopier] コピーする条件を少なくとも1つチェックしてください。");
         return;
@@ -59,9 +63,9 @@ namespace Nunifuchisaka
       {
         Debug.Log($"[ComponentCopier] ----- Start copying from '{source.name}' to '{dest.name}' -----");
         Debug.Log("[ComponentCopier] Pass 1: Replicating hierarchy...");
-        ReplicateHierarchyRecursively(source.transform, dest.transform, doCopyVrc, doCopyMa, doCopyAao);
+        ReplicateHierarchyRecursively(source.transform, dest.transform, doCopyVrc, doCopyMa, doCopyAao, doCopyFloorAdjuster);
         Debug.Log("[ComponentCopier] Pass 2: Copying components...");
-        CopyComponentsRecursively(source.transform, dest.transform, doCopyVrc, doCopyMa, doCopyAao);
+        CopyComponentsRecursively(source.transform, dest.transform, doCopyVrc, doCopyMa, doCopyAao, doCopyFloorAdjuster);
         Debug.Log("[ComponentCopier] Pass 3: Remapping references...");
         RemapAllReferencesRecursively(source, dest);
         Debug.Log("[ComponentCopier] ----- All passes completed successfully. -----");
@@ -76,11 +80,11 @@ namespace Nunifuchisaka
       }
     }
 
-    private static void ReplicateHierarchyRecursively(Transform source, Transform parentInDest, bool copyVrc, bool copyMa, bool copyAao)
+    private static void ReplicateHierarchyRecursively(Transform source, Transform parentInDest, bool copyVrc, bool copyMa, bool copyAao, bool copyFloorAdjuster)
     {
       foreach (Transform sourceChild in source)
       {
-        if (HierarchyHasCopyableComponents(sourceChild, copyVrc, copyMa, copyAao))
+        if (HierarchyHasCopyableComponents(sourceChild, copyVrc, copyMa, copyAao, copyFloorAdjuster))
         {
           Transform destChild = parentInDest.Find(sourceChild.name);
           if (destChild == null)
@@ -93,12 +97,12 @@ namespace Nunifuchisaka
             destChild.localRotation = sourceChild.localRotation;
             destChild.localScale = sourceChild.localScale;
           }
-          ReplicateHierarchyRecursively(sourceChild, destChild, copyVrc, copyMa, copyAao);
+          ReplicateHierarchyRecursively(sourceChild, destChild, copyVrc, copyMa, copyAao, copyFloorAdjuster);
         }
       }
     }
 
-    private static bool HierarchyHasCopyableComponents(Transform target, bool copyVrc, bool copyMa, bool copyAao)
+    private static bool HierarchyHasCopyableComponents(Transform target, bool copyVrc, bool copyMa, bool copyAao, bool copyFloorAdjuster)
     {
         foreach(var component in target.GetComponents<Component>())
         {
@@ -109,15 +113,16 @@ namespace Nunifuchisaka
             string componentNamespace = component.GetType().Namespace ?? "";
 
             bool isCopyTarget = (copyVrc && (componentName.StartsWith("VRC") || componentNamespace.StartsWith("VRC"))) ||
-                                (copyMa && (componentName.StartsWith("MA") || componentName.StartsWith("ModularAvatar"))) ||
-                                (copyAao && componentName.StartsWith("TraceAndOptimize"));
+                                (copyMa && componentName.StartsWith("ModularAvatar")) ||
+                                (copyAao && componentName == "TraceAndOptimize") ||
+                                (copyFloorAdjuster && componentName == "FloorAdjuster");
             
             if (isCopyTarget) return true;
         }
 
         foreach(Transform child in target)
         {
-            if (HierarchyHasCopyableComponents(child, copyVrc, copyMa, copyAao))
+            if (HierarchyHasCopyableComponents(child, copyVrc, copyMa, copyAao, copyFloorAdjuster))
             {
                 return true;
             }
@@ -125,7 +130,7 @@ namespace Nunifuchisaka
         return false;
     }
 
-    private static void CopyComponentsRecursively(Transform source, Transform destination, bool copyVrc, bool copyMa, bool copyAao)
+    private static void CopyComponentsRecursively(Transform source, Transform destination, bool copyVrc, bool copyMa, bool copyAao, bool copyFloorAdjuster)
     {
       Component[] sourceComponents = source.GetComponents<Component>().OrderBy(c => GetSortPriority(c)).ToArray();
       foreach (var sourceComponent in sourceComponents)
@@ -141,8 +146,9 @@ namespace Nunifuchisaka
         string componentNamespace = componentType.Namespace ?? "";
         
         bool shouldCopy = (copyVrc && (componentName.StartsWith("VRC") || componentNamespace.StartsWith("VRC"))) ||
-                         (copyMa && (componentName.StartsWith("MA") || componentName.StartsWith("ModularAvatar"))) ||
-                         (copyAao && componentName.StartsWith("TraceAndOptimize"));
+                          (copyMa && componentName.StartsWith("ModularAvatar")) ||
+                          (copyAao && componentName == "TraceAndOptimize") ||
+                          (copyFloorAdjuster && componentName == "FloorAdjuster");
 
         if (shouldCopy)
         {
@@ -159,7 +165,7 @@ namespace Nunifuchisaka
       foreach (Transform sourceChild in source)
       {
         Transform destinationChild = destination.Find(sourceChild.name);
-        if (destinationChild != null) CopyComponentsRecursively(sourceChild, destinationChild, copyVrc, copyMa, copyAao);
+        if (destinationChild != null) CopyComponentsRecursively(sourceChild, destinationChild, copyVrc, copyMa, copyAao, copyFloorAdjuster);
       }
     }
 
@@ -189,8 +195,9 @@ namespace Nunifuchisaka
       string componentName = component.GetType().Name;
       if (componentName == "VRCPhysBoneCollider") return 0;
       if (componentName == "VRCPhysBone") return 1;
-      if (componentName.StartsWith("MA") || componentName.StartsWith("ModularAvatar")) return 3;
+      if (componentName.StartsWith("ModularAvatar")) return 3;
       if (componentName == "TraceAndOptimize") return 4;
+      if (componentName == "FloorAdjuster") return 5;
       return 2;
     }
     
@@ -273,3 +280,4 @@ namespace Nunifuchisaka
     }
   }
 }
+#endif

@@ -10,7 +10,7 @@ namespace Nunifuchisaka
     private GameObject sourceObject;
     private GameObject destinationObject;
 
-    [MenuItem("Tools/Nunifuchisaka/BlendShape Copier...")]
+    [MenuItem("Tools/Nunifuchisaka/BlendShape Copier...", false, 100)]
     public static void ShowWindow()
     {
       GetWindow<BlendShapeCopier>("BlendShape Copier");

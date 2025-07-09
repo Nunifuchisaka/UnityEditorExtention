@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 
@@ -9,7 +10,7 @@ namespace Nunifuchisaka
     private GameObject destinationObject;
 
     // メニューにウィンドウを開く項目を追加
-    [MenuItem("Tools/Nunifuchisaka/Sync ActiveState...")]
+    [MenuItem("Tools/Nunifuchisaka/Sync ActiveState...", false, 100)]
     public static void ShowWindow()
     {
       GetWindow<SyncActiveState>("SyncActiveState");
@@ -79,3 +80,4 @@ namespace Nunifuchisaka
     }
   }
 }
+#endif

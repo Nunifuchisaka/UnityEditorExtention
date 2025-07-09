@@ -9,7 +9,7 @@ namespace Nunifuchisaka
     private GameObject sourceObject;
     private GameObject destinationObject;
 
-    [MenuItem("Tools/Nunifuchisaka/Prefab Instantiator...")]
+    [MenuItem("Tools/Nunifuchisaka/Prefab Instantiator...", false, 100)]
     public static void ShowWindow()
     {
       GetWindow<PrefabInstantiator>("Prefab Instantiator");
