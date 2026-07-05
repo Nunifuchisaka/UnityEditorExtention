@@ -1,0 +1,49 @@
+# UnityEditorExtention
+
+VRChatアバター向けのUnityエディタ拡張集です。アバターの衣装替えや素体の差し替えの際に、旧アバターから新アバターへセットアップ（PhysBone・Modular Avatar・マテリアル・BlendShapeなど）を移行する作業を自動化します。
+
+## 動作環境
+
+- Unity 2022.3 系（VRChat推奨バージョン）で動作確認
+- VRChat SDK / Modular Avatar / AAO (Avatar Optimizer) / FloorAdjuster へのアセンブリ参照は持たず、型名の文字列マッチで判定します。これらのパッケージが入っていないプロジェクトでもコンパイルエラーにはなりません
+
+## 導入方法
+
+このリポジトリの内容を、Unityプロジェクトの `Assets` 配下の `Editor` フォルダ（例：`Assets/Nunifuchisaka/Editor/`）に配置してください。メニューの `Tools > Nunifuchisaka` から各ツールを開けます。
+
+## 主な使い方：アバターの移行
+
+1. **Tools > Nunifuchisaka > Avatar Copier...** を開く
+2. `From` に移行元アバター、`To` に移行先アバターを指定する
+3. **Copy All** を押すと、以下を順番に実行します
+   1. Prefabインスタンスの複製（`From` 直下のPrefabを `To` に複製）
+   2. Transformのコピー（同名オブジェクト同士）
+   3. マテリアルのコピー
+   4. BlendShapeウェイトのコピー
+   5. アクティブ状態の同期
+   6. コンポーネントのコピー（VRC / Modular Avatar / AAO / FloorAdjuster。階層の複製と参照のリマップを含む）
+4. **Compare (移行結果の確認)** を押して Avatar Comparer で移行漏れがないか確認する
+
+各ステップは個別のボタンでも実行できます。シーンを変更する操作はすべてUndo（Ctrl+Z）で戻せます。
+
+## ツール一覧
+
+| メニュー | 説明 |
+| --- | --- |
+| Avatar Copier... | アバター移行のオーケストレーター。上記の全ステップを一括または個別に実行 |
+| Avatar Comparer... | 移行元と移行先を比較し、移行漏れや差異を検出。階層・Transform・Material・BlendShape・アクティブ状態・コンポーネント数・参照のリマップ漏れをエラー／警告で一覧表示し、`Select` で該当オブジェクトにジャンプできる |
+| Component Copier... | VRC / Modular Avatar / AAO / FloorAdjuster のコンポーネントを階層ごとコピー。3パス構成（①階層の複製 → ②コンポーネントのコピー → ③コピー元階層への参照をコピー先の対応オブジェクトへリマップ） |
+| Component Remover... | 指定した階層から VRC / Modular Avatar / AAO / FloorAdjuster のコンポーネントを一括削除 |
+| Component Viewer... | 選択中オブジェクトのコンポーネント名を一覧表示し、クリップボードにコピー |
+| Prefab Instantiator... | `From` 直下のPrefabインスタンスを `To` の階層に複製 |
+| Transform Copier... | 同名オブジェクト同士でTransformをコピー（位置・回転・スケールを軸別に選択可能） |
+| BlendShape Copier... | 同名オブジェクト・同名BlendShape同士でウェイトをコピー |
+| Sync ActiveState... | 同名オブジェクト同士でアクティブ状態を同期 |
+| Transform Reverter... | Prefabインスタンスの Transform のオーバーライドだけを選択的にRevert |
+| Import Package with Preview... | `.unitypackage` の内容をインポート前にプレビューし、既存アセットとの競合（上書き）を確認 |
+
+## 注意事項
+
+- オブジェクトの対応付けは**同名の子オブジェクト**で行います。同じ階層に同名の兄弟オブジェクトがあると正しく対応付けられません
+- コンポーネントの判定は型名・名前空間の文字列マッチです（`VRC...`、`ModularAvatar...`、`TraceAndOptimize`、`FloorAdjuster`）
+- Avatar Comparer の比較結果はウィンドウのほかConsoleにも出力されます
