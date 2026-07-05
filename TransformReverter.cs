@@ -53,8 +53,6 @@ namespace Nunifuchisaka
         return;
       }
 
-      Undo.RegisterCompleteObjectUndo(targetObject, "Revert Transform Properties");
-
       ProcessGameObjectRecursively(targetObject);
 
       Debug.Log($"[TransformReverter] Process completed for '{targetObject.name}'.");
@@ -95,6 +93,10 @@ namespace Nunifuchisaka
           }
         }
       }
+
+      // 実際に変更されるのは各プレハブインスタンス側なので、対象ごとにUndoへ記録する
+      Undo.RegisterCompleteObjectUndo(go, "Revert Transform Properties");
+      Undo.RegisterCompleteObjectUndo(go.transform, "Revert Transform Properties");
 
       PrefabUtility.SetPropertyModifications(go, newModifications.ToArray());
 

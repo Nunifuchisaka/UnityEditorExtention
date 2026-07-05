@@ -10,7 +10,7 @@ namespace Nunifuchisaka
     {
       if (source == null || destination == null)
       {
-        Debug.LogError("ソースオブジェクトまたは複製先オブジェクトが指定されていません。");
+        Debug.LogError("[PrefabInstantiator] ソースオブジェクトまたは複製先オブジェクトが指定されていません。");
         return;
       }
 
@@ -23,11 +23,11 @@ namespace Nunifuchisaka
 
       if (duplicatedCount > 0)
       {
-        Debug.Log($"{duplicatedCount}個のPrefabインスタンスを [{destination.name}] の階層に複製しました。", destination);
+        Debug.Log($"[PrefabInstantiator] {duplicatedCount}個のPrefabインスタンスを '{destination.name}' の階層に複製しました。", destination);
       }
       else
       {
-        Debug.Log($"複製対象のPrefabインスタンスが見つからないか、既にすべて存在していました。");
+        Debug.Log($"[PrefabInstantiator] 複製対象のPrefabインスタンスが見つからないか、既にすべて存在していました。");
       }
     }
 

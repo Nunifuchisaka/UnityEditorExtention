@@ -10,7 +10,7 @@ namespace Nunifuchisaka
     {
       if (targetObject == null)
       {
-        Debug.LogWarning("[Reverter] 対象のGameObjectがnullです。");
+        Debug.LogWarning("[ObjectReverter] 対象のGameObjectがnullです。");
         return;
       }
 
@@ -18,7 +18,7 @@ namespace Nunifuchisaka
 
       if (instanceRoot == null)
       {
-        Debug.LogWarning($"[Reverter] '{targetObject.name}' はPrefabインスタンスの一部ではないため、Revertできません。");
+        Debug.LogWarning($"[ObjectReverter] '{targetObject.name}' はPrefabインスタンスの一部ではないため、Revertできません。");
         return;
       }
 
@@ -26,8 +26,9 @@ namespace Nunifuchisaka
       {
         if (instanceRoot != null)
         {
-          PrefabUtility.RevertPrefabInstance(instanceRoot, InteractionMode.AutomatedAction);
-          Debug.Log($"[Reverter] Complete.");
+          // UserActionはUndo登録されるモード（AutomatedActionはUndo不可）
+          PrefabUtility.RevertPrefabInstance(instanceRoot, InteractionMode.UserAction);
+          Debug.Log($"[ObjectReverter] Complete.");
         }
       };
     }

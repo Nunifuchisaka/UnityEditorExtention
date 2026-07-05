@@ -108,16 +108,8 @@ namespace Nunifuchisaka
         {
             if (component == null) continue;
             if (component is Transform || component is Renderer) continue;
-            
-            string componentName = component.GetType().Name;
-            string componentNamespace = component.GetType().Namespace ?? "";
 
-            bool isCopyTarget = (copyVrc && (componentName.StartsWith("VRC") || componentNamespace.StartsWith("VRC"))) ||
-                                (copyMa && componentName.StartsWith("ModularAvatar")) ||
-                                (copyAao && componentName == "TraceAndOptimize") ||
-                                (copyFloorAdjuster && componentName == "FloorAdjuster");
-            
-            if (isCopyTarget) return true;
+            if (ComponentFilter.Matches(component, copyVrc, copyMa, copyAao, copyFloorAdjuster)) return true;
         }
 
         foreach(Transform child in target)
@@ -133,6 +125,8 @@ namespace Nunifuchisaka
     private static void CopyComponentsRecursively(Transform source, Transform destination, bool copyVrc, bool copyMa, bool copyAao, bool copyFloorAdjuster)
     {
       Component[] sourceComponents = source.GetComponents<Component>().OrderBy(c => GetSortPriority(c)).ToArray();
+      // 同じ型のコンポーネントが同一GameObject上に複数ある場合、型ごとの出現順（n番目同士）で対応付ける
+      var typeOccurrence = new Dictionary<System.Type, int>();
       foreach (var sourceComponent in sourceComponents)
       {
         if (sourceComponent == null) continue;
@@ -140,21 +134,26 @@ namespace Nunifuchisaka
         {
             continue;
         }
-        
-        System.Type componentType = sourceComponent.GetType();
-        string componentName = componentType.Name;
-        string componentNamespace = componentType.Namespace ?? "";
-        
-        bool shouldCopy = (copyVrc && (componentName.StartsWith("VRC") || componentNamespace.StartsWith("VRC"))) ||
-                          (copyMa && componentName.StartsWith("ModularAvatar")) ||
-                          (copyAao && componentName == "TraceAndOptimize") ||
-                          (copyFloorAdjuster && componentName == "FloorAdjuster");
 
-        if (shouldCopy)
+        System.Type componentType = sourceComponent.GetType();
+
+        if (ComponentFilter.Matches(sourceComponent, copyVrc, copyMa, copyAao, copyFloorAdjuster))
         {
-          Component destComponent = destination.GetComponent(componentType);
-          if (destComponent == null) destComponent = Undo.AddComponent(destination.gameObject, componentType);
-          else Undo.RecordObject(destComponent, "Modify Component");
+          int occurrenceIndex;
+          typeOccurrence.TryGetValue(componentType, out occurrenceIndex);
+          typeOccurrence[componentType] = occurrenceIndex + 1;
+
+          Component[] destComponents = destination.GetComponents(componentType);
+          Component destComponent;
+          if (occurrenceIndex < destComponents.Length)
+          {
+            destComponent = destComponents[occurrenceIndex];
+            Undo.RecordObject(destComponent, "Modify Component");
+          }
+          else
+          {
+            destComponent = Undo.AddComponent(destination.gameObject, componentType);
+          }
 
           if (UnityEditorInternal.ComponentUtility.CopyComponent(sourceComponent))
           {
@@ -179,8 +178,13 @@ namespace Nunifuchisaka
       foreach (Component component in currentDest.GetComponents<Component>())
       {
         if (component == null) continue;
-        
+        if (component is Transform) continue;
+
+        Undo.RecordObject(component, "Remap References");
         ProcessFieldsRecursively(component, component.GetType(), sourceRoot, destRoot);
+        // リフレクションでのフィールド書き込みはUnityに変更が通知されないため、明示的に永続化する
+        PrefabUtility.RecordPrefabInstancePropertyModifications(component);
+        EditorUtility.SetDirty(component);
       }
       foreach (Transform child in currentDest)
       {

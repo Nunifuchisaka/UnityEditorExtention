@@ -121,7 +121,6 @@ namespace Nunifuchisaka
 
             if (parts.Length == 2 && parts[1] == "pathname")
             {
-              // isTargetFile = true; // ←この行を削除
               string guid = parts[0];
               string assetPath = Encoding.UTF8.GetString(buffer, offset + 512, (int)size).Trim();
               string existingPath = AssetDatabase.GUIDToAssetPath(guid);

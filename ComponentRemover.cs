@@ -12,6 +12,7 @@ namespace Nunifuchisaka
     private bool removeVrcComponents = true;
     private bool removeMaComponents = true;
     private bool removeAaoComponents = true;
+    private bool removeFloorAdjuster = true;
 
     [MenuItem("Tools/Nunifuchisaka/Component Remover...", false, 200)]
     public static void ShowWindow()
@@ -31,6 +32,7 @@ namespace Nunifuchisaka
       removeVrcComponents = EditorGUILayout.Toggle(new GUIContent("VRC", "VRChat SDK関連のコンポーネント（VRC...で始まるもの）を削除します。"), removeVrcComponents);
       removeMaComponents = EditorGUILayout.Toggle(new GUIContent("ModularAvatar", "Modular Avatar関連のコンポーネント（ModularAvatar...で始まるもの）を削除します。"), removeMaComponents);
       removeAaoComponents = EditorGUILayout.Toggle(new GUIContent("AAO TraceAndOptimize", "Avatar OptimizerのTraceAndOptimizeを削除します。"), removeAaoComponents);
+      removeFloorAdjuster = EditorGUILayout.Toggle(new GUIContent("FloorAdjuster", "FloorAdjusterコンポーネントを削除します。"), removeFloorAdjuster);
 
       GUILayout.Space(20);
 
@@ -48,7 +50,7 @@ namespace Nunifuchisaka
         return;
       }
 
-      if (!removeVrcComponents && !removeMaComponents && !removeAaoComponents)
+      if (!removeVrcComponents && !removeMaComponents && !removeAaoComponents && !removeFloorAdjuster)
       {
         Debug.LogWarning("[ComponentRemover] 削除する条件を少なくとも1つチェックしてください。");
         return;
@@ -69,14 +71,7 @@ namespace Nunifuchisaka
             continue;
           }
 
-          string componentName = component.GetType().Name;
-
-          bool shouldRemove =
-              (removeVrcComponents && componentName.StartsWith("VRC")) ||
-              (removeMaComponents && componentName.StartsWith("ModularAvatar")) ||
-              (removeAaoComponents && componentName.StartsWith("TraceAndOptimize"));
-
-          if (shouldRemove)
+          if (ComponentFilter.Matches(component, removeVrcComponents, removeMaComponents, removeAaoComponents, removeFloorAdjuster))
           {
             componentsToRemove.Add(component);
           }

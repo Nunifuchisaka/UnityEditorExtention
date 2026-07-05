@@ -34,7 +34,6 @@ namespace Nunifuchisaka
       EditorGUILayout.Space(5);
       destinationObject = (GameObject)EditorGUILayout.ObjectField("To", destinationObject, typeof(GameObject), true);
 
-      EditorGUI.EndDisabledGroup();
       EditorGUILayout.EndVertical();
 
       EditorGUILayout.Space(10);
@@ -47,12 +46,19 @@ namespace Nunifuchisaka
         EditorGUILayout.Space(5);
         if (GUILayout.Button("Copy All"))
         {
+          // 全ステップをひとつのUndoグループにまとめ、Ctrl+Z一発で戻せるようにする
+          Undo.IncrementCurrentGroup();
+          Undo.SetCurrentGroupName("Avatar Copy All");
+          int undoGroup = Undo.GetCurrentGroup();
+
           PrefabInstantiatorLogic.DuplicatePrefabs(sourceObject, destinationObject);
           TransformCopier.ExecuteCopy(sourceObject, destinationObject);
           MaterialCopier.ExecuteCopy(sourceObject, destinationObject);
           BlendShapeCopier.ExecuteCopy(sourceObject, destinationObject);
           SyncActiveState.Execute(sourceObject, destinationObject);
           ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents, copyFloorAdjuster);
+
+          Undo.CollapseUndoOperations(undoGroup);
         }
         EditorGUILayout.EndVertical();
 

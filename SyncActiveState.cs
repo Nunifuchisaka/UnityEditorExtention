@@ -23,7 +23,7 @@ namespace Nunifuchisaka
     {
       if (source == null || destination == null)
       {
-        Debug.LogError("同期の実行に失敗しました。SourceまたはDestinationがnullです。");
+        Debug.LogError("[SyncActiveState] 同期の実行に失敗しました。SourceまたはDestinationがnullです。");
         return;
       }
 
