@@ -138,6 +138,18 @@ namespace Nunifuchisaka
         }
       }
       EditorGUI.EndDisabledGroup();
+
+      EditorGUILayout.Space(10);
+
+      // 移行結果の比較確認（AvatarComparerを開く）
+      EditorGUI.BeginDisabledGroup(!canProcess);
+      {
+        if (GUILayout.Button("Compare (移行結果の確認)"))
+        {
+          AvatarComparer.ShowWindow(sourceObject, destinationObject);
+        }
+      }
+      EditorGUI.EndDisabledGroup();
       EditorGUILayout.EndVertical();
     }
   }

@@ -96,6 +96,8 @@ namespace Nunifuchisaka
             destChild.localPosition = sourceChild.localPosition;
             destChild.localRotation = sourceChild.localRotation;
             destChild.localScale = sourceChild.localScale;
+            // アクティブ状態もコピーする（SyncActiveStateはComponentCopierより先に実行されるため、ここで作られたオブジェクトは対象外）
+            newDestGo.SetActive(sourceChild.gameObject.activeSelf);
           }
           ReplicateHierarchyRecursively(sourceChild, destChild, copyVrc, copyMa, copyAao, copyFloorAdjuster);
         }
@@ -181,7 +183,7 @@ namespace Nunifuchisaka
         if (component is Transform) continue;
 
         Undo.RecordObject(component, "Remap References");
-        ProcessFieldsRecursively(component, component.GetType(), sourceRoot, destRoot);
+        ProcessFieldsRecursively(component, component.GetType(), sourceRoot, destRoot, MaxRemapDepth);
         // リフレクションでのフィールド書き込みはUnityに変更が通知されないため、明示的に永続化する
         PrefabUtility.RecordPrefabInstancePropertyModifications(component);
         EditorUtility.SetDirty(component);
@@ -205,20 +207,23 @@ namespace Nunifuchisaka
       return 2;
     }
     
-    private static void ProcessFieldsRecursively(object targetObject, System.Type targetType, GameObject sourceRoot, GameObject destRoot)
+    // ネストしたSerializableクラス・構造体を再帰する深さの上限（自己参照による無限再帰を防ぐ）
+    private const int MaxRemapDepth = 6;
+
+    private static void ProcessFieldsRecursively(object targetObject, System.Type targetType, GameObject sourceRoot, GameObject destRoot, int depth)
     {
-      if (targetObject == null) return;
+      if (targetObject == null || depth <= 0) return;
       FieldInfo[] fields = targetType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
       foreach (FieldInfo field in fields)
       {
         object fieldValue = field.GetValue(targetObject);
-        ProcessValue(fieldValue, field.FieldType, (newValue) => field.SetValue(targetObject, newValue), sourceRoot, destRoot);
+        ProcessValue(fieldValue, field.FieldType, (newValue) => field.SetValue(targetObject, newValue), sourceRoot, destRoot, depth);
       }
     }
 
-    private static void ProcessValue(object value, System.Type valueType, System.Action<object> setter, GameObject sourceRoot, GameObject destRoot)
+    private static void ProcessValue(object value, System.Type valueType, System.Action<object> setter, GameObject sourceRoot, GameObject destRoot, int depth)
     {
-      if (value == null) return;
+      if (value == null || depth <= 0) return;
       if (typeof(UnityEngine.Object).IsAssignableFrom(valueType))
       {
         var newReference = RemapObject((UnityEngine.Object)value, sourceRoot, destRoot);
@@ -229,30 +234,66 @@ namespace Nunifuchisaka
         var array = value as System.Array;
         System.Type elementType = valueType.GetElementType();
         if (typeof(UnityEngine.Object).IsAssignableFrom(elementType))
+        {
           for (int i = 0; i < array.Length; i++)
             if (array.GetValue(i) is UnityEngine.Object elem)
             {
               var newReference = RemapObject(elem, sourceRoot, destRoot);
               if (newReference != null) array.SetValue(newReference, i);
             }
+        }
+        else if (IsRecursableType(elementType))
+        {
+          // 構造体・Serializableクラス要素の中の参照もリマップする（例：VRCHeadChop.targetBones[n].transform）
+          for (int i = 0; i < array.Length; i++)
+          {
+            object element = array.GetValue(i);
+            if (element == null) continue;
+            ProcessFieldsRecursively(element, element.GetType(), sourceRoot, destRoot, depth - 1);
+            if (elementType.IsValueType) array.SetValue(element, i);
+          }
+        }
       }
       else if (typeof(IList).IsAssignableFrom(valueType) && valueType.IsGenericType)
       {
         var list = value as IList;
         System.Type genericType = valueType.GetGenericArguments()[0];
         if (typeof(UnityEngine.Object).IsAssignableFrom(genericType))
+        {
           for (int i = 0; i < list.Count; i++)
             if(list[i] is UnityEngine.Object elem)
             {
               var newReference = RemapObject(elem, sourceRoot, destRoot);
               if (newReference != null) list[i] = newReference;
             }
+        }
+        else if (IsRecursableType(genericType))
+        {
+          for (int i = 0; i < list.Count; i++)
+          {
+            object element = list[i];
+            if (element == null) continue;
+            ProcessFieldsRecursively(element, element.GetType(), sourceRoot, destRoot, depth - 1);
+            if (genericType.IsValueType) list[i] = element;
+          }
+        }
       }
-      else if (valueType.IsValueType && !valueType.IsPrimitive && valueType.Namespace != null && !valueType.Namespace.StartsWith("System"))
+      else if (IsRecursableType(valueType))
       {
-        ProcessFieldsRecursively(value, valueType, sourceRoot, destRoot);
-        setter(value);
+        // 構造体に加え、Serializableクラスの中も再帰する（例：ModularAvatarのAvatarObjectReference.targetObject）
+        ProcessFieldsRecursively(value, value.GetType(), sourceRoot, destRoot, depth - 1);
+        if (valueType.IsValueType) setter(value);
       }
+    }
+
+    private static bool IsRecursableType(System.Type type)
+    {
+      if (type.IsPrimitive || type.IsEnum || type == typeof(string)) return false;
+      if (typeof(UnityEngine.Object).IsAssignableFrom(type)) return false;
+      string ns = type.Namespace ?? "";
+      if (ns.StartsWith("System")) return false;
+      if (type.IsClass && ns.StartsWith("UnityEngine")) return false;
+      return true;
     }
 
     private static UnityEngine.Object RemapObject(UnityEngine.Object sourceRefObject, GameObject sourceRoot, GameObject destRoot)
