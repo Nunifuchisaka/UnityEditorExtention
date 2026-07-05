@@ -10,6 +10,7 @@ namespace Nunifuchisaka
     private GameObject sourceObject;
     private GameObject destinationObject;
 
+    private bool copyAllComponents = false;
     private bool copyVrcComponents = true;
     private bool copyMaComponents = true;
     private bool copyAaoComponents = true;
@@ -56,7 +57,7 @@ namespace Nunifuchisaka
           MaterialCopier.ExecuteCopy(sourceObject, destinationObject);
           BlendShapeCopier.ExecuteCopy(sourceObject, destinationObject);
           SyncActiveState.Execute(sourceObject, destinationObject);
-          ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents, copyFloorAdjuster);
+          ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents, copyFloorAdjuster, copyAllComponents);
 
           Undo.CollapseUndoOperations(undoGroup);
         }
@@ -110,13 +111,16 @@ namespace Nunifuchisaka
 
         // Componentをコピー
         EditorGUILayout.LabelField("Copy Component", EditorStyles.boldLabel);
+        copyAllComponents = EditorGUILayout.Toggle(new GUIContent("All Components", "Transform・Renderer・MeshFilterを除くすべてのコンポーネントをコピーします。"), copyAllComponents);
+        EditorGUI.BeginDisabledGroup(copyAllComponents);
         copyVrcComponents = EditorGUILayout.Toggle(new GUIContent("VRC", "VRChat SDK関連のコンポーネントをコピーします。"), copyVrcComponents);
         copyMaComponents = EditorGUILayout.Toggle(new GUIContent("ModularAvatar", "Modular Avatar関連のコンポーネントをコピーします。"), copyMaComponents);
         copyAaoComponents = EditorGUILayout.Toggle(new GUIContent("AAO TraceAndOptimize", "TraceAndOptimizeコンポーネントをコピーします。"), copyAaoComponents);
         copyFloorAdjuster = EditorGUILayout.Toggle(new GUIContent("FloorAdjuster", "FloorAdjusterコンポーネントをコピーします。"), copyFloorAdjuster);
+        EditorGUI.EndDisabledGroup();
         if (GUILayout.Button("Copy Component"))
         {
-          ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents, copyFloorAdjuster);
+          ComponentCopier.ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents, copyFloorAdjuster, copyAllComponents);
         }
         EditorGUILayout.EndVertical();
       }

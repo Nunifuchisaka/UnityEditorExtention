@@ -14,6 +14,7 @@ namespace Nunifuchisaka
     private GameObject sourceObject;
     private GameObject destinationObject;
 
+    private bool copyAllComponents = false;
     private bool copyVrcComponents = true;
     private bool copyMaComponents = true;
     private bool copyAaoComponents = true;
@@ -32,40 +33,43 @@ namespace Nunifuchisaka
       destinationObject = (GameObject)EditorGUILayout.ObjectField("To", destinationObject, typeof(GameObject), true);
       GUILayout.Space(10);
       EditorGUILayout.LabelField("Conditions", EditorStyles.boldLabel);
+      copyAllComponents = EditorGUILayout.Toggle(new GUIContent("All Components", "Transform・Renderer・MeshFilterを除くすべてのコンポーネントをコピーします。"), copyAllComponents);
+      EditorGUI.BeginDisabledGroup(copyAllComponents);
       copyVrcComponents = EditorGUILayout.Toggle(new GUIContent("VRC", "VRChat SDK関連のコンポーネントをコピーします。"), copyVrcComponents);
       copyMaComponents = EditorGUILayout.Toggle(new GUIContent("ModularAvatar", "Modular Avatar関連のコンポーネントをコピーします。"), copyMaComponents);
       copyAaoComponents = EditorGUILayout.Toggle(new GUIContent("AAO TraceAndOptimize", "TraceAndOptimizeコンポーネントをコピーします。"), copyAaoComponents);
       copyFloorAdjuster = EditorGUILayout.Toggle(new GUIContent("FloorAdjuster", "FloorAdjusterコンポーネントをコピーします。"), copyFloorAdjuster);
+      EditorGUI.EndDisabledGroup();
 
       GUILayout.Space(20);
       if (GUILayout.Button("Copy Components"))
       {
-        ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents, copyFloorAdjuster);
+        ExecuteCopy(sourceObject, destinationObject, copyVrcComponents, copyMaComponents, copyAaoComponents, copyFloorAdjuster, copyAllComponents);
       }
     }
 
-    public static void ExecuteCopy(GameObject source, GameObject dest, bool doCopyVrc, bool doCopyMa, bool doCopyAao, bool doCopyFloorAdjuster)
+    public static void ExecuteCopy(GameObject source, GameObject dest, bool doCopyVrc, bool doCopyMa, bool doCopyAao, bool doCopyFloorAdjuster, bool doCopyAll = false)
     {
       if (source == null || dest == null)
       {
         Debug.LogError("[ComponentCopier] From と To の両方を設定してください。");
         return;
       }
-      if (!doCopyVrc && !doCopyMa && !doCopyAao && !doCopyFloorAdjuster)
+      if (!doCopyAll && !doCopyVrc && !doCopyMa && !doCopyAao && !doCopyFloorAdjuster)
       {
         Debug.LogWarning("[ComponentCopier] コピーする条件を少なくとも1つチェックしてください。");
         return;
       }
-      
+
       Undo.SetCurrentGroupName("Copy Components Recursively");
       int group = Undo.GetCurrentGroup();
       try
       {
-        Debug.Log($"[ComponentCopier] ----- Start copying from '{source.name}' to '{dest.name}' -----");
+        Debug.Log($"[ComponentCopier] ----- Start copying from '{source.name}' to '{dest.name}' -----" + (doCopyAll ? " (All Components)" : ""));
         Debug.Log("[ComponentCopier] Pass 1: Replicating hierarchy...");
-        ReplicateHierarchyRecursively(source.transform, dest.transform, doCopyVrc, doCopyMa, doCopyAao, doCopyFloorAdjuster);
+        ReplicateHierarchyRecursively(source.transform, dest.transform, doCopyVrc, doCopyMa, doCopyAao, doCopyFloorAdjuster, doCopyAll);
         Debug.Log("[ComponentCopier] Pass 2: Copying components...");
-        CopyComponentsRecursively(source.transform, dest.transform, doCopyVrc, doCopyMa, doCopyAao, doCopyFloorAdjuster);
+        CopyComponentsRecursively(source.transform, dest.transform, doCopyVrc, doCopyMa, doCopyAao, doCopyFloorAdjuster, doCopyAll);
         Debug.Log("[ComponentCopier] Pass 3: Remapping references...");
         RemapAllReferencesRecursively(source, dest);
         Debug.Log("[ComponentCopier] ----- All passes completed successfully. -----");
@@ -80,11 +84,11 @@ namespace Nunifuchisaka
       }
     }
 
-    private static void ReplicateHierarchyRecursively(Transform source, Transform parentInDest, bool copyVrc, bool copyMa, bool copyAao, bool copyFloorAdjuster)
+    private static void ReplicateHierarchyRecursively(Transform source, Transform parentInDest, bool copyVrc, bool copyMa, bool copyAao, bool copyFloorAdjuster, bool copyAll)
     {
       foreach (Transform sourceChild in source)
       {
-        if (HierarchyHasCopyableComponents(sourceChild, copyVrc, copyMa, copyAao, copyFloorAdjuster))
+        if (HierarchyHasCopyableComponents(sourceChild, copyVrc, copyMa, copyAao, copyFloorAdjuster, copyAll))
         {
           Transform destChild = parentInDest.Find(sourceChild.name);
           if (destChild == null)
@@ -99,24 +103,24 @@ namespace Nunifuchisaka
             // アクティブ状態もコピーする（SyncActiveStateはComponentCopierより先に実行されるため、ここで作られたオブジェクトは対象外）
             newDestGo.SetActive(sourceChild.gameObject.activeSelf);
           }
-          ReplicateHierarchyRecursively(sourceChild, destChild, copyVrc, copyMa, copyAao, copyFloorAdjuster);
+          ReplicateHierarchyRecursively(sourceChild, destChild, copyVrc, copyMa, copyAao, copyFloorAdjuster, copyAll);
         }
       }
     }
 
-    private static bool HierarchyHasCopyableComponents(Transform target, bool copyVrc, bool copyMa, bool copyAao, bool copyFloorAdjuster)
+    private static bool HierarchyHasCopyableComponents(Transform target, bool copyVrc, bool copyMa, bool copyAao, bool copyFloorAdjuster, bool copyAll)
     {
         foreach(var component in target.GetComponents<Component>())
         {
             if (component == null) continue;
-            if (component is Transform || component is Renderer) continue;
+            if (IsAlwaysExcluded(component)) continue;
 
-            if (ComponentFilter.Matches(component, copyVrc, copyMa, copyAao, copyFloorAdjuster)) return true;
+            if (copyAll || ComponentFilter.Matches(component, copyVrc, copyMa, copyAao, copyFloorAdjuster)) return true;
         }
 
         foreach(Transform child in target)
         {
-            if (HierarchyHasCopyableComponents(child, copyVrc, copyMa, copyAao, copyFloorAdjuster))
+            if (HierarchyHasCopyableComponents(child, copyVrc, copyMa, copyAao, copyFloorAdjuster, copyAll))
             {
                 return true;
             }
@@ -124,7 +128,7 @@ namespace Nunifuchisaka
         return false;
     }
 
-    private static void CopyComponentsRecursively(Transform source, Transform destination, bool copyVrc, bool copyMa, bool copyAao, bool copyFloorAdjuster)
+    private static void CopyComponentsRecursively(Transform source, Transform destination, bool copyVrc, bool copyMa, bool copyAao, bool copyFloorAdjuster, bool copyAll)
     {
       Component[] sourceComponents = source.GetComponents<Component>().OrderBy(c => GetSortPriority(c)).ToArray();
       // 同じ型のコンポーネントが同一GameObject上に複数ある場合、型ごとの出現順（n番目同士）で対応付ける
@@ -132,14 +136,14 @@ namespace Nunifuchisaka
       foreach (var sourceComponent in sourceComponents)
       {
         if (sourceComponent == null) continue;
-        if (sourceComponent is Transform || sourceComponent is Renderer)
+        if (IsAlwaysExcluded(sourceComponent))
         {
             continue;
         }
 
         System.Type componentType = sourceComponent.GetType();
 
-        if (ComponentFilter.Matches(sourceComponent, copyVrc, copyMa, copyAao, copyFloorAdjuster))
+        if (copyAll || ComponentFilter.Matches(sourceComponent, copyVrc, copyMa, copyAao, copyFloorAdjuster))
         {
           int occurrenceIndex;
           typeOccurrence.TryGetValue(componentType, out occurrenceIndex);
@@ -166,8 +170,16 @@ namespace Nunifuchisaka
       foreach (Transform sourceChild in source)
       {
         Transform destinationChild = destination.Find(sourceChild.name);
-        if (destinationChild != null) CopyComponentsRecursively(sourceChild, destinationChild, copyVrc, copyMa, copyAao, copyFloorAdjuster);
+        if (destinationChild != null) CopyComponentsRecursively(sourceChild, destinationChild, copyVrc, copyMa, copyAao, copyFloorAdjuster, copyAll);
       }
+    }
+
+    // どのモードでもコピー対象にしないコンポーネント。
+    // Transformは TransformCopier、Renderer（Material・BlendShape）は MaterialCopier / BlendShapeCopier が担当する。
+    // MeshFilterはRendererとペアで意味を持つため、Rendererと合わせて除外する。
+    private static bool IsAlwaysExcluded(Component component)
+    {
+      return component is Transform || component is Renderer || component is MeshFilter;
     }
 
     private static void RemapAllReferencesRecursively(GameObject sourceRoot, GameObject destRoot)

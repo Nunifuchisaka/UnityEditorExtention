@@ -32,7 +32,7 @@ VRChatアバター向けのUnityエディタ拡張集です。アバターの衣
 | --- | --- |
 | Avatar Copier... | アバター移行のオーケストレーター。上記の全ステップを一括または個別に実行 |
 | Avatar Comparer... | 移行元と移行先を比較し、移行漏れや差異を検出。階層・Transform・Material・BlendShape・アクティブ状態・コンポーネント数・参照のリマップ漏れをエラー／警告で一覧表示し、`Select` で該当オブジェクトにジャンプできる |
-| Component Copier... | VRC / Modular Avatar / AAO / FloorAdjuster のコンポーネントを階層ごとコピー。3パス構成（①階層の複製 → ②コンポーネントのコピー → ③コピー元階層への参照をコピー先の対応オブジェクトへリマップ） |
+| Component Copier... | VRC / Modular Avatar / AAO / FloorAdjuster のコンポーネントを階層ごとコピー。3パス構成（①階層の複製 → ②コンポーネントのコピー → ③コピー元階層への参照をコピー先の対応オブジェクトへリマップ）。「All Components」をONにすると、Transform・Renderer・MeshFilterを除くすべてのコンポーネントをコピーする |
 | Component Remover... | 指定した階層から VRC / Modular Avatar / AAO / FloorAdjuster のコンポーネントを一括削除 |
 | Component Viewer... | 選択中オブジェクトのコンポーネント名を一覧表示し、クリップボードにコピー |
 | Prefab Instantiator... | `From` 直下のPrefabインスタンスを `To` の階層に複製 |
