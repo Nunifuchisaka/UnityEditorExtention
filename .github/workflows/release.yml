@@ -15,7 +15,7 @@ jobs:
 
       # Checkout Local Repository
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Get the Package version based on the package.json file
       - name: Get Version
@@ -50,7 +50,7 @@ jobs:
 
       # Publish the Release to GitHub (creates the tag if it doesn't exist)
       - name: Make Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             ${{ env.zipFile }}
