@@ -9,7 +9,22 @@ VRChatアバター向けのUnityエディタ拡張集です。アバターの衣
 
 ## 導入方法
 
-このリポジトリの内容を、Unityプロジェクトの `Assets` 配下の `Editor` フォルダ（例：`Assets/Nunifuchisaka/Editor/`）に配置してください。メニューの `Tools > Nunifuchisaka` から各ツールを開けます。
+### VCC（VRChat Creator Companion）から（推奨）
+
+1. VCCの `Settings > Packages > Add Repository` に以下のURLを追加する
+
+   ```
+   https://nunifuchisaka.github.io/UnityEditorExtension/index.json
+   ```
+
+   （リスティングのWebページ <https://nunifuchisaka.github.io/UnityEditorExtension/> の「Add to VCC」ボタンからも追加できます）
+2. VCCでプロジェクトの `Manage Project` を開き、**Nunifuchisaka Avatar Tools** を追加する
+
+導入後、メニューの `Tools > Nunifuchisaka` から各ツールを開けます。
+
+### 手動で（VCCを使わない場合）
+
+このリポジトリの内容を、Unityプロジェクトの `Assets` 配下の `Editor` フォルダ（例：`Assets/Nunifuchisaka/Editor/`）に配置してください。VCCからインストールし直す場合は、手動配置したフォルダを先に削除してください。
 
 ## 主な使い方：アバターの移行
 

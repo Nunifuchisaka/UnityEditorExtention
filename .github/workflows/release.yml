@@ -1,0 +1,58 @@
+name: Build Release
+
+on:
+  workflow_dispatch:
+
+env:
+  packageName: com.nunifuchisaka.avatar-tools
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+
+      # Checkout Local Repository
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Get the Package version based on the package.json file
+      - name: Get Version
+        id: version
+        run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+
+      # Configure the Environment Variables needed for releasing the Package
+      - name: Set Environment Variables
+        run: |
+          echo "zipFile=${{ env.packageName }}-${{ steps.version.outputs.version }}.zip" >> $GITHUB_ENV
+          echo "version=${{ steps.version.outputs.version }}" >> $GITHUB_ENV
+
+      # Zip the Package for release
+      # リポジトリのルートがパッケージのルート。開発用ファイルを除いてステージングしてからzipする
+      - name: Create Package Zip
+        run: |
+          mkdir -p "$RUNNER_TEMP/package"
+          rsync -a ./ "$RUNNER_TEMP/package/" \
+            --exclude .git \
+            --exclude .github \
+            --exclude .gitignore \
+            --exclude Website \
+            --exclude Website.meta \
+            --exclude source.json \
+            --exclude source.json.meta \
+            --exclude Test.unity \
+            --exclude Test.unity.meta \
+            --exclude CLAUDE.md \
+            --exclude CLAUDE.md.meta
+          cd "$RUNNER_TEMP/package"
+          zip -r "$GITHUB_WORKSPACE/${{ env.zipFile }}" .
+
+      # Publish the Release to GitHub (creates the tag if it doesn't exist)
+      - name: Make Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.zipFile }}
+            package.json
+          tag_name: ${{ env.version }}

@@ -1,0 +1,17 @@
+{
+  "name": "Nunifuchisaka VPM Repository",
+  "id": "com.nunifuchisaka.vpm",
+  "url": "https://nunifuchisaka.github.io/UnityEditorExtension/index.json",
+  "author": {
+    "name": "ぬにふちさか",
+    "url": "https://github.com/Nunifuchisaka"
+  },
+  "description": "ぬにふちさかのVRChat向けUnityエディタ拡張のVPMリスティング",
+  "infoLink": {
+    "url": "https://github.com/Nunifuchisaka/UnityEditorExtension",
+    "text": "View on GitHub"
+  },
+  "githubRepos": [
+    "Nunifuchisaka/UnityEditorExtension"
+  ]
+}
