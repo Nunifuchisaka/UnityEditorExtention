@@ -10,7 +10,7 @@ namespace Nunifuchisaka
     private GameObject sourceObject;
     private GameObject destinationObject;
 
-    private bool copyAllComponents = false;
+    private bool copyAllComponents = true;
     private bool copyVrcComponents = true;
     private bool copyMaComponents = true;
     private bool copyAaoComponents = true;
@@ -25,6 +25,7 @@ namespace Nunifuchisaka
     private void OnGUI()
     {
       GUILayout.Label("アバター総合コピー", EditorStyles.boldLabel);
+      DocumentationLink.Draw();
       EditorGUILayout.Space(10);
 
       EditorGUILayout.BeginVertical(GUI.skin.box);

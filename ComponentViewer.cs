@@ -14,6 +14,8 @@ namespace Nunifuchisaka
 
     private void OnGUI()
     {
+      DocumentationLink.Draw();
+
       GameObject selectedObject = Selection.activeGameObject;
 
       if (selectedObject != null)

@@ -38,6 +38,7 @@ namespace Nunifuchisaka
     private void OnGUI()
     {
       GUILayout.Label("Copy Transform Hierarchy", EditorStyles.boldLabel);
+      DocumentationLink.Draw();
 
       sourceObject = (GameObject)EditorGUILayout.ObjectField("From", sourceObject, typeof(GameObject), true);
       destinationObject = (GameObject)EditorGUILayout.ObjectField("To", destinationObject, typeof(GameObject), true);

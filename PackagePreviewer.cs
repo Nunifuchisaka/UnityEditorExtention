@@ -52,6 +52,7 @@ namespace Nunifuchisaka
     private void OnGUI()
     {
       EditorGUILayout.LabelField("Package:", EditorStyles.boldLabel);
+      DocumentationLink.Draw();
       EditorGUILayout.SelectableLabel(_selectedPackagePath, EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
       EditorGUILayout.Space();
       if (_isParsing) { EditorGUILayout.LabelField("Parsing package contents, please wait..."); return; }

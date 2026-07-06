@@ -44,6 +44,7 @@ namespace Nunifuchisaka
     private void OnGUI()
     {
       GUILayout.Label("オブジェクトのアクティブ状態を同期", EditorStyles.boldLabel);
+      DocumentationLink.Draw();
       EditorGUILayout.HelpBox("Destinationオブジェクトのアクティブ状態を、Sourceオブジェクトの状態に合わせます。\nSourceに存在してDestinationに存在しない子要素は無視されます。", MessageType.Info);
 
       sourceObject = (GameObject)EditorGUILayout.ObjectField("Source", sourceObject, typeof(GameObject), true);

@@ -23,6 +23,7 @@ namespace Nunifuchisaka
     private void OnGUI()
     {
       GUILayout.Label("Select Target GameObject", EditorStyles.boldLabel);
+      DocumentationLink.Draw();
 
       rootObject = (GameObject)EditorGUILayout.ObjectField("Root Object", rootObject, typeof(GameObject), true);
 

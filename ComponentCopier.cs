@@ -14,7 +14,7 @@ namespace Nunifuchisaka
     private GameObject sourceObject;
     private GameObject destinationObject;
 
-    private bool copyAllComponents = false;
+    private bool copyAllComponents = true;
     private bool copyVrcComponents = true;
     private bool copyMaComponents = true;
     private bool copyAaoComponents = true;
@@ -29,6 +29,7 @@ namespace Nunifuchisaka
     private void OnGUI()
     {
       GUILayout.Label("Copy Specific Components", EditorStyles.boldLabel);
+      DocumentationLink.Draw();
       sourceObject = (GameObject)EditorGUILayout.ObjectField("From", sourceObject, typeof(GameObject), true);
       destinationObject = (GameObject)EditorGUILayout.ObjectField("To", destinationObject, typeof(GameObject), true);
       GUILayout.Space(10);

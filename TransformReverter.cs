@@ -24,6 +24,7 @@ namespace Nunifuchisaka
 
       // 1. オブジェクト選択フィールド
       GUILayout.Label("Select Target GameObject", boldLabel);
+      DocumentationLink.Draw();
       targetObject = (GameObject)EditorGUILayout.ObjectField("Root Object", targetObject, typeof(GameObject), true);
 
       EditorGUILayout.Space(10);

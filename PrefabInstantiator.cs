@@ -18,6 +18,7 @@ namespace Nunifuchisaka
     private void OnGUI()
     {
       GUILayout.Label("Prefab ユーティリティ", EditorStyles.boldLabel);
+      DocumentationLink.Draw();
       EditorGUILayout.Space(10);
 
       sourceObject = (GameObject)EditorGUILayout.ObjectField("From", sourceObject, typeof(GameObject), true);

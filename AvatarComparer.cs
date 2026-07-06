@@ -72,6 +72,7 @@ namespace Nunifuchisaka
     private void OnGUI()
     {
       GUILayout.Label("アバター移行の比較確認", EditorStyles.boldLabel);
+      DocumentationLink.Draw();
       EditorGUILayout.HelpBox("Fromを基準に、階層・Transform・Material・BlendShape・アクティブ状態・コンポーネントと参照を比較し、移行漏れや差異を検出します。", MessageType.Info);
 
       sourceObject = (GameObject)EditorGUILayout.ObjectField("From", sourceObject, typeof(GameObject), true);
