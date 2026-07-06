@@ -44,7 +44,9 @@ jobs:
             --exclude Test.unity \
             --exclude Test.unity.meta \
             --exclude CLAUDE.md \
-            --exclude CLAUDE.md.meta
+            --exclude CLAUDE.md.meta \
+            --exclude BoothPackageExporter.cs \
+            --exclude BoothPackageExporter.cs.meta
           cd "$RUNNER_TEMP/package"
           zip -r "$GITHUB_WORKSPACE/${{ env.zipFile }}" .
 

@@ -56,6 +56,7 @@ VRChatアバター向けのUnityエディタ拡張集です。アバターの衣
 | Sync ActiveState... | 同名オブジェクト同士でアクティブ状態を同期 |
 | Transform Reverter... | Prefabインスタンスの Transform のオーバーライドだけを選択的にRevert |
 | Import Package with Preview... | `.unitypackage` の内容をインポート前にプレビューし、既存アセットとの競合（上書き）を確認 |
+| Booth Package Exporter... | パッケージ資産を `.unitypackage` 化し、README・LICENSE・利用規約とともにBOOTH配布用zipにまとめる（開発者用） |
 
 ## 注意事項
 

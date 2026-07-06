@@ -51,4 +51,10 @@ VRChatアバター用のUnityエディタ拡張集。VCCプロジェクト（Ava
 
 - このリポジトリはVPMパッケージ `com.nunifuchisaka.avatar-tools` そのもの。リポジトリ直下がパッケージルートで、`package.json` がVPMマニフェスト、`Nunifuchisaka.Editor.asmdef` がEditor専用アセンブリ定義。
 - リリース手順：`package.json` の `version` を上げてpush → GitHubのActionsで **Build Release** を手動実行（workflow_dispatch）。zipとpackage.jsonがGitHub Releasesに公開され、続けて **Build Repo Listing** が自動実行されてVCC用リスティングがGitHub Pages（`https://nunifuchisaka.github.io/UnityEditorExtension/index.json`）に再生成される。
-- `Website/`（リスティングWebページのテンプレート）・`source.json`（リスティング定義）・`Test.unity`・`CLAUDE.md`・`.github/` は開発用で、配布zipには含まれない（除外リストは `.github/workflows/release.yml`）。ツールの `.cs` を追加したときは除外リストの更新は不要だが、開発専用ファイルを追加したときは除外リストにも足すこと。
+- `Website/`（リスティングWebページのテンプレート）・`source.json`（リスティング定義）・`Test.unity`・`CLAUDE.md`・`.github/`・`BoothPackageExporter.cs` は開発用で、配布zipには含まれない（除外リストは `.github/workflows/release.yml`）。ツールの `.cs` を追加したときは除外リストの更新は不要だが、開発専用ファイルを追加したときは除外リストにも足すこと。
+
+## BOOTH配布
+
+- VCC/VPM経由の配布とは別に、BOOTH（booth.pm）へは手動でzipをアップロードする必要がある。**Tools > Nunifuchisaka > Booth Package Exporter...**（`BoothPackageExporter.cs`、開発者専用ツール）を実行すると、パッケージ資産を `.unitypackage` 化した上で、`README.md`・`LICENSE`・`Terms.txt`（利用規約）と一緒にBOOTH配布用zipにまとめて出力する。
+- 出力先は `dist~/`。フォルダ名末尾の `~` によりUnityがアセットとしてインポートしないため `.meta` は生成されず、`.gitignore` でもgit管理から除外している。
+- `LICENSE` と `Terms.txt` は開発専用ファイルではないため、VCC/VPM配布zipにも通常どおり含まれる。
